@@ -1,0 +1,99 @@
+﻿to:
+cd /boot/dtb/allwinner/overlay
+
+add:
+sudo nano sun50i-a64-orangeTFT3.dts
+
+which is:
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "allwinner,sun50i-a64";
+
+    fragment@0 {
+        target = <&spi1>;
+
+        __overlay__ {
+            status = "okay";
+
+            spidev@0{
+                status = "disabled";
+            };
+
+            spidev@1{
+                status = "disabled";
+            };
+        };
+    };
+   fragment@1 {
+        target = <&pio>;
+
+        __overlay__ {
+            opiz_display_pins: opiz_display_pins {
+                pins = "PC14", "PC15"; /*, "PC6"; /*dc,rst,led, dc=pc7,rst=pc10  first two pins interfere with spi initialization – they are random gpio*/
+                function = "gpio_out", "gpio_out";
+            };
+        };
+    };
+
+    fragment@2 {
+        target = <&spi1>;
+
+        __overlay__ {
+        /* needed to avoid dtc warning */
+        #address-cells = <1>;
+        #size-cells = <0>;
+        status = "okay";
+        pinctrl-names = "default";
+        cs-gpios = <&pio 7 9 0>;
+        num-chipselects = <1>;
+            opizdisplay: opiz-display@0{
+                compatible = "ilitek,ili9341";
+                reg = <0>;
+                pinctrl-names = "default";
+                pinctrl-0 = <&opiz_display_pins>;
+
+                spi-max-frequency = <32000000>;
+                rotate = <90>;
+                bgr = <0>;
+                fps = <30>;
+                buswidth = <8>;
+                reset-gpios = <&pio 2 10 1>;
+                dc-gpios = <&pio 2 7 0>;
+
+                /* don't bind the backlight to the display, we'll access the
+                    GPIO pin directly from software */
+                /* led-gpios = <&pio 2 6 0>; */
+
+                width = <240>;
+                height = <320>;
+
+                debug = <4>;
+
+            };
+        };
+    };
+};
+
+compile with this (shows errors in contrast to next compile method):
+sudo dtc -O dtb -o sun50i-a64-orangeTFT3.dtbo sun50i-a64-orangeTFT3.dts 
+
+after that compile with(also adds something to armbianEnv.txt):
+sudo armbian-add-overlay sun50i-a64-orangeTFT3.dts
+
+open:
+sudo nano /boot/armbianEnv.txt
+
+which should look like:
+verbosity=1
+bootlogo=true
+console=both
+disp_mode=1920x1080p60
+overlay_prefix=sun50i-a64
+rootdev=UUID=b3895e91-ac88-4fe0-9a25-5a2f3e7d3432
+rootfstype=ext4
+user_overlays=sun50i-a64-orangeTFT3
+overlay=orangeTFT3
+usbstoragequirks=0x2537:0x1066:u,0x2537:0x1068:u
+
