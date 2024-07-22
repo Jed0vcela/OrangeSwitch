@@ -1,5 +1,5 @@
 # OrangeSwitch
-open source game console based on orange Pi zero 3
+open source game console based on orange Pi 3 zero (2GB ram, 4 core)
 
 reccomended system is Armbian:
   site:
